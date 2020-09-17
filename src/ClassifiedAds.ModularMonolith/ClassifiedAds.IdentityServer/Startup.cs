@@ -1,7 +1,9 @@
 ﻿using System.Security.Cryptography.X509Certificates;
-using ClassifiedAds.Infrastructure.Logging;
+using ClassifiedAds.IdentityServer.ConfigurationOptions;
 using ClassifiedAds.Modules.Identity.Entities;
+using ClassifiedAds.Modules.Identity.Repositories;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,10 +17,13 @@ namespace ClassifiedAds.IdentityServer
         {
             Configuration = configuration;
 
-            env.UseClassifiedAdsLogger();
+            AppSettings = new AppSettings();
+            Configuration.Bind(AppSettings);
         }
 
         public IConfiguration Configuration { get; }
+
+        private AppSettings AppSettings { get; set; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -28,16 +33,23 @@ namespace ClassifiedAds.IdentityServer
 
             services.AddCors();
 
-            services.AddIdentityModule(Configuration["ConnectionStrings:ClassifiedAds"])
-                    .AddNotificationModule(Configuration["ConnectionStrings:ClassifiedAds"])
+            services.AddDateTimeProvider();
+
+            services.AddIdentityModule(AppSettings.ConnectionStrings.ClassifiedAds)
+                    .AddNotificationModule(AppSettings.MessageBroker, AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddApplicationServices();
 
             services.AddIdentityServer()
                     .AddSigningCredential(new X509Certificate2(Configuration["Certificates:Default:Path"], Configuration["Certificates:Default:Password"]))
                     .AddAspNetIdentity<User>()
-                    .AddTokenProviderModule(Configuration.GetConnectionString("ClassifiedAds"));
+                    .AddTokenProviderModule(AppSettings.ConnectionStrings.ClassifiedAds);
 
-            services.AddClassifiedAdsProfiler();
+            services.AddDataProtection()
+                .PersistKeysToDbContext<IdentityDbContext>()
+                .SetApplicationName("ClassifiedAds");
+
+            services.AddCaches(AppSettings.Caching)
+                    .AddClassifiedAdsProfiler(AppSettings.Monitoring);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -59,11 +71,15 @@ namespace ClassifiedAds.IdentityServer
                 .AllowAnyMethod()
             );
 
-            app.UseClassifiedAdsProfiler();
+            app.UseSecurityHeaders(AppSettings.SecurityHeaders);
+
             app.UseIdentityServer();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints => {
+            app.UseClassifiedAdsProfiler();
+
+            app.UseEndpoints(endpoints =>
+            {
                 endpoints.MapDefaultControllerRoute();
             });
         }
