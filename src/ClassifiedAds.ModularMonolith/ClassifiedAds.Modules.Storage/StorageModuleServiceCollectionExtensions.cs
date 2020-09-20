@@ -17,7 +17,7 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class StorageServiceCollectionExtensions
+    public static class StorageModuleServiceCollectionExtensions
     {
         public static IServiceCollection AddStorageModule(this IServiceCollection services, StorageOptions storageOptions, MessageBrokerOptions messageBrokerOptions, string connectionString, string migrationsAssembly = "")
         {

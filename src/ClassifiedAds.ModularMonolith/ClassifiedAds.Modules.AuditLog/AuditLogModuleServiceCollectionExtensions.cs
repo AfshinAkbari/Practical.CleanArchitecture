@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class AuditLogServicesExtensions
+    public static class AuditLogModuleServiceCollectionExtensions
     {
         public static IServiceCollection AddAuditLogModule(this IServiceCollection services, string connectionString, string migrationsAssembly = "")
         {

@@ -1,10 +1,12 @@
 ﻿using ClassifiedAds.Application;
+using ClassifiedAds.CrossCuttingConcerns.OS;
 using ClassifiedAds.Domain.Events;
 using ClassifiedAds.Domain.Infrastructure.MessageBrokers;
-using ClassifiedAds.Domain.Repositories;
+using ClassifiedAds.Infrastructure.Notification.Email;
 using ClassifiedAds.Modules.Notification.Contracts.DTOs;
 using ClassifiedAds.Modules.Notification.Contracts.Services;
 using ClassifiedAds.Modules.Notification.Entities;
+using ClassifiedAds.Modules.Notification.Repositories;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
@@ -14,21 +16,27 @@ namespace ClassifiedAds.Modules.Notification.Services
     public class EmailMessageService : CrudService<EmailMessage>, IEmailMessageService
     {
         private readonly ILogger _logger;
-        private readonly IRepository<EmailMessage, Guid> _repository;
+        private readonly IEmailMessageRepository _repository;
         private readonly IMessageSender<EmailMessageCreatedEvent> _emailMessageCreatedEventSender;
+        private readonly IEmailNotification _emailNotification;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
         public EmailMessageService(ILogger<EmailMessageService> logger,
-            IRepository<EmailMessage, Guid> repository,
+            IEmailMessageRepository repository,
             IMessageSender<EmailMessageCreatedEvent> emailMessageCreatedEventSender,
-            IDomainEvents domainEvents)
+            IDomainEvents domainEvents,
+            IEmailNotification emailNotification,
+            IDateTimeProvider dateTimeProvider)
             : base(repository, domainEvents)
         {
             _logger = logger;
             _repository = repository;
             _emailMessageCreatedEventSender = emailMessageCreatedEventSender;
+            _emailNotification = emailNotification;
+            _dateTimeProvider = dateTimeProvider;
         }
 
-        public void CreateEmailMessage(EmailMessageDTO emailMessage)
+        public void CreateEmailMessage(Contracts.DTOs.EmailMessageDTO emailMessage)
         {
             AddOrUpdate(new EmailMessage
             {
@@ -43,7 +51,7 @@ namespace ClassifiedAds.Modules.Notification.Services
 
         public int ResendEmailMessages()
         {
-            var dateTime = DateTimeOffset.Now.AddMinutes(-1);
+            var dateTime = _dateTimeProvider.OffsetNow.AddMinutes(-1);
 
             var messages = _repository.GetAll()
                 .Where(x => x.SentDateTime == null && x.RetriedCount < 3)
@@ -68,6 +76,32 @@ namespace ClassifiedAds.Modules.Notification.Services
             }
 
             return messages.Count;
+        }
+
+        public void SendEmailMessage(Guid id)
+        {
+            var emailMessage = _repository.GetAll().FirstOrDefault(x => x.Id == id);
+            if (emailMessage != null && !emailMessage.SentDateTime.HasValue)
+            {
+                try
+                {
+                    _emailNotification.Send(new Infrastructure.Notification.Email.EmailMessageDTO
+                    {
+                        From = emailMessage.From,
+                        Tos = emailMessage.Tos,
+                        CCs = emailMessage.CCs,
+                        BCCs = emailMessage.BCCs,
+                        Subject = emailMessage.Subject,
+                        Body = emailMessage.Body,
+                    });
+
+                    _repository.UpdateSent(emailMessage.Id);
+                }
+                catch (Exception ex)
+                {
+                    _repository.UpdateFailed(emailMessage.Id, Environment.NewLine + Environment.NewLine + ex.ToString());
+                }
+            }
         }
     }
 }

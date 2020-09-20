@@ -1,6 +1,7 @@
 ﻿using ClassifiedAds.Domain.Events;
 using ClassifiedAds.Domain.Repositories;
 using ClassifiedAds.Infrastructure.MessageBrokers;
+using ClassifiedAds.Infrastructure.Notification;
 using ClassifiedAds.Modules.Notification.Contracts.DTOs;
 using ClassifiedAds.Modules.Notification.Contracts.Services;
 using ClassifiedAds.Modules.Notification.Entities;
@@ -13,9 +14,9 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class NotificationServiceCollectionExtensions
+    public static class NotificationModuleServiceCollectionExtensions
     {
-        public static IServiceCollection AddNotificationModule(this IServiceCollection services, MessageBrokerOptions messageBrokerOptions, string connectionString, string migrationsAssembly = "")
+        public static IServiceCollection AddNotificationModule(this IServiceCollection services, MessageBrokerOptions messageBrokerOptions, NotificationOptions notificationOptions, string connectionString, string migrationsAssembly = "")
         {
             services
                 .AddDbContext<NotificationDbContext>(options => options.UseSqlServer(connectionString, sql =>
@@ -27,6 +28,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 }))
                 .AddScoped<IRepository<EmailMessage, Guid>, Repository<EmailMessage, Guid>>()
                 .AddScoped<IRepository<SmsMessage, Guid>, Repository<SmsMessage, Guid>>()
+                .AddScoped(typeof(IEmailMessageRepository), typeof(EmailMessageRepository))
+                .AddScoped(typeof(ISmsMessageRepository), typeof(SmsMessageRepository))
                 .AddScoped<IEmailMessageService, EmailMessageService>();
 
             services
@@ -40,6 +43,8 @@ namespace Microsoft.Extensions.DependencyInjection
             services
                 .AddMessageBusSender<EmailMessageCreatedEvent>(messageBrokerOptions)
                 .AddMessageBusSender<SmsMessageCreatedEvent>(messageBrokerOptions);
+
+            services.AddNotificationServices(notificationOptions);
 
             return services;
         }

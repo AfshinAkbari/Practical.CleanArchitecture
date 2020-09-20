@@ -1,5 +1,10 @@
 ﻿using ClassifiedAds.Infrastructure.HealthChecks;
 using ClassifiedAds.Infrastructure.MessageBrokers;
+using ClassifiedAds.Infrastructure.Notification;
+using ClassifiedAds.Infrastructure.Notification.Email;
+using ClassifiedAds.Infrastructure.Notification.Sms;
+using ClassifiedAds.Infrastructure.Notification.Web;
+using ClassifiedAds.Modules.Notification;
 using ClassifiedAds.Modules.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -30,12 +35,18 @@ namespace ClassifiedAds.Migrator
             services.AddDateTimeProvider();
 
             var messageBrokerOptions = new MessageBrokerOptions { Provider = "Fake" };
+            var notificationOptions = new NotificationOptions
+            {
+                Email = new EmailOptions { Provider = "Fake" },
+                Sms = new SmsOptions { Provider = "Fake" },
+                Web = new WebOptions { Provider = "Fake" },
+            };
 
             services.AddAuditLogModule(Configuration["ConnectionStrings:ClassifiedAds"],
                 typeof(Startup).GetTypeInfo().Assembly.GetName().Name)
                 .AddIdentityModule(Configuration["ConnectionStrings:ClassifiedAds"],
                 typeof(Startup).GetTypeInfo().Assembly.GetName().Name)
-                .AddNotificationModule(messageBrokerOptions, Configuration["ConnectionStrings:ClassifiedAds"],
+                .AddNotificationModule(messageBrokerOptions, notificationOptions, Configuration["ConnectionStrings:ClassifiedAds"],
                 typeof(Startup).GetTypeInfo().Assembly.GetName().Name)
                 .AddProductModule(Configuration["ConnectionStrings:ClassifiedAds"],
                 typeof(Startup).GetTypeInfo().Assembly.GetName().Name)

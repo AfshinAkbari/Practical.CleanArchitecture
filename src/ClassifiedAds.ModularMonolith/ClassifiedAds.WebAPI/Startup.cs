@@ -1,4 +1,8 @@
 ﻿using AutoMapper;
+using ClassifiedAds.Infrastructure.Notification;
+using ClassifiedAds.Infrastructure.Notification.Email;
+using ClassifiedAds.Infrastructure.Notification.Sms;
+using ClassifiedAds.Infrastructure.Notification.Web;
 using ClassifiedAds.Infrastructure.Web.Filters;
 using ClassifiedAds.Modules.Identity.Contracts.Services;
 using ClassifiedAds.Modules.Identity.Repositories;
@@ -35,11 +39,12 @@ namespace ClassifiedAds.WebAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddAutoMapper(typeof(AuditLogServicesExtensions),
+            services.AddAutoMapper(
+                typeof(AuditLogModuleServiceCollectionExtensions),
                 typeof(IdentityDbContext),
-                typeof(NotificationServiceCollectionExtensions),
-                typeof(ProductServiceCollectionExtensions),
-                typeof(StorageServiceCollectionExtensions)
+                typeof(NotificationModuleServiceCollectionExtensions),
+                typeof(ProductModuleServiceCollectionExtensions),
+                typeof(StorageModuleServiceCollectionExtensions)
                 );
 
             services.Configure<AppSettings>(Configuration);
@@ -71,9 +76,16 @@ namespace ClassifiedAds.WebAPI
 
             services.AddDateTimeProvider();
 
+            var notificationOptions = new NotificationOptions
+            {
+                Email = new EmailOptions { Provider = "Fake" },
+                Sms = new SmsOptions { Provider = "Fake" },
+                Web = new WebOptions { Provider = "Fake" },
+            };
+
             services.AddAuditLogModule(AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddIdentityModuleCore(AppSettings.ConnectionStrings.ClassifiedAds)
-                    .AddNotificationModule(AppSettings.MessageBroker, AppSettings.ConnectionStrings.ClassifiedAds)
+                    .AddNotificationModule(AppSettings.MessageBroker, notificationOptions, AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddProductModule(AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddStorageModule(AppSettings.Storage, AppSettings.MessageBroker, AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddApplicationServices();

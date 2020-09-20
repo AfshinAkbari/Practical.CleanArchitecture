@@ -1,10 +1,9 @@
-﻿using ClassifiedAds.Modules.Notification.Contracts;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace ClassifiedAds.Modules.Notification.Services
+namespace ClassifiedAds.Infrastructure.Notification.Web.SignalR
 {
     public class SignalRNotification : IWebNotification
     {

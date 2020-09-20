@@ -5,7 +5,7 @@ using ClassifiedAds.BackgroundServer.ConfigurationOptions;
 using ClassifiedAds.BackgroundServer.HostedServices;
 using ClassifiedAds.Domain.Infrastructure.MessageBrokers;
 using ClassifiedAds.Infrastructure.HealthChecks;
-using ClassifiedAds.Modules.Notification.Contracts;
+using ClassifiedAds.Infrastructure.Notification.Web;
 using ClassifiedAds.Modules.Notification.Contracts.DTOs;
 using ClassifiedAds.Modules.Notification.Services;
 using ClassifiedAds.Modules.Storage.DTOs;
@@ -67,14 +67,13 @@ namespace ClassifiedAds.BackgroundServer
 
             services.AddDateTimeProvider();
 
-            services.AddNotificationModule(AppSettings.MessageBroker, AppSettings.ConnectionStrings.ClassifiedAds);
+            services.AddNotificationModule(AppSettings.MessageBroker, AppSettings.Notification, AppSettings.ConnectionStrings.ClassifiedAds)
+                    .AddApplicationServices();
 
             services.AddMessageBusReceiver<FileUploadedEvent>(AppSettings.MessageBroker);
             services.AddMessageBusReceiver<FileDeletedEvent>(AppSettings.MessageBroker);
             services.AddMessageBusReceiver<EmailMessageCreatedEvent>(AppSettings.MessageBroker);
             services.AddMessageBusReceiver<SmsMessageCreatedEvent>(AppSettings.MessageBroker);
-
-            services.AddTransient<IWebNotification, SignalRNotification>();
 
             services.AddHostedService<ResendEmailHostedService>();
             services.AddHostedService<ResendSmsHostedService>();
@@ -90,7 +89,7 @@ namespace ClassifiedAds.BackgroundServer
 
             app.UseHangfireServer();
 
-            RunMessageBrokerReceivers(app.ApplicationServices);
+            RunMessageBrokerReceivers(app.ApplicationServices.CreateScope().ServiceProvider);
 
             app.Run(async (context) =>
             {
@@ -105,7 +104,7 @@ namespace ClassifiedAds.BackgroundServer
             var emailMessageCreatedMessageQueueReceiver = serviceProvider.GetService<IMessageReceiver<EmailMessageCreatedEvent>>();
             var smsMessageCreatedMessageQueueReceiver = serviceProvider.GetService<IMessageReceiver<SmsMessageCreatedEvent>>();
 
-            var notification = new SignalRNotification();
+            var notification = serviceProvider.GetService<IWebNotification>();
             var endpoint = $"{AppSettings.NotificationServer.Endpoint}/SimulatedLongRunningTaskHub";
 
             fileUploadedMessageQueueReceiver?.Receive(data =>
@@ -114,7 +113,7 @@ namespace ClassifiedAds.BackgroundServer
 
                 string message = data.FileEntry.Id.ToString();
 
-                //notification.Send(endpoint, "SendTaskStatus", new { Step = $"{AppSettings.MessageBroker.Provider} - File Uploaded", Message = message });
+                notification.Send(endpoint, "SendTaskStatus", new { Step = $"{AppSettings.MessageBroker.Provider} - File Uploaded", Message = message });
             });
 
             fileDeletedMessageQueueReceiver?.Receive(data =>
@@ -123,25 +122,39 @@ namespace ClassifiedAds.BackgroundServer
 
                 string message = data.FileEntry.Id.ToString();
 
-                //notification.Send(endpoint, "SendTaskStatus", new { Step = $"{AppSettings.MessageBroker.Provider} - File Deleted", Message = message });
+                notification.Send(endpoint, "SendTaskStatus", new { Step = $"{AppSettings.MessageBroker.Provider} - File Deleted", Message = message });
             });
+
+            var emailMessageService = serviceProvider.GetService<EmailMessageService>();
 
             emailMessageCreatedMessageQueueReceiver?.Receive(data =>
             {
                 string message = data.Id.ToString();
 
-                // TODO: code send mail here
+                try
+                {
+                    emailMessageService.SendEmailMessage(data.Id);
+                }
+                catch (Exception ex)
+                { }
 
-                //notification.Send(endpoint, "SendTaskStatus", new { Step = $"Send Email", Message = message });
+                notification.Send(endpoint, "SendTaskStatus", new { Step = $"Send Email", Message = message });
             });
+
+            var smsMessageService = serviceProvider.GetService<SmsMessageService>();
 
             smsMessageCreatedMessageQueueReceiver?.Receive(data =>
             {
                 string message = data.Id.ToString();
 
-                // TODO: code send sms here
+                try
+                {
+                    smsMessageService.SendSmsMessage(data.Id);
+                }
+                catch (Exception ex)
+                { }
 
-                //notification.Send(endpoint, "SendTaskStatus", new { Step = $"Send Sms", Message = message });
+                notification.Send(endpoint, "SendTaskStatus", new { Step = $"Send Sms", Message = message });
             });
         }
     }

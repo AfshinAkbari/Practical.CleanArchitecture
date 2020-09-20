@@ -1,5 +1,9 @@
 ﻿using System.Security.Cryptography.X509Certificates;
 using ClassifiedAds.IdentityServer.ConfigurationOptions;
+using ClassifiedAds.Infrastructure.Notification;
+using ClassifiedAds.Infrastructure.Notification.Email;
+using ClassifiedAds.Infrastructure.Notification.Sms;
+using ClassifiedAds.Infrastructure.Notification.Web;
 using ClassifiedAds.Modules.Identity.Entities;
 using ClassifiedAds.Modules.Identity.Repositories;
 using Microsoft.AspNetCore.Builder;
@@ -35,8 +39,15 @@ namespace ClassifiedAds.IdentityServer
 
             services.AddDateTimeProvider();
 
+            var notificationOptions = new NotificationOptions
+            {
+                Email = new EmailOptions { Provider = "Fake" },
+                Sms = new SmsOptions { Provider = "Fake" },
+                Web = new WebOptions { Provider = "Fake" },
+            };
+
             services.AddIdentityModule(AppSettings.ConnectionStrings.ClassifiedAds)
-                    .AddNotificationModule(AppSettings.MessageBroker, AppSettings.ConnectionStrings.ClassifiedAds)
+                    .AddNotificationModule(AppSettings.MessageBroker, notificationOptions, AppSettings.ConnectionStrings.ClassifiedAds)
                     .AddApplicationServices();
 
             services.AddIdentityServer()

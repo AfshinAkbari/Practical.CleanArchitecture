@@ -9,7 +9,7 @@ namespace ClassifiedAds.Modules.Notification.Repositories
     public class Repository<T, TKey> : IRepository<T, TKey>
         where T : AggregateRoot<TKey>
     {
-        private readonly NotificationDbContext _dbContext;
+        protected readonly NotificationDbContext _dbContext;
         private readonly IDateTimeProvider _dateTimeProvider;
 
         protected DbSet<T> DbSet => _dbContext.Set<T>();

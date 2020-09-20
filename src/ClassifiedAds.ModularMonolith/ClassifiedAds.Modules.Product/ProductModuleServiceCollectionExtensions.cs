@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class ProductServiceCollectionExtensions
+    public static class ProductModuleServiceCollectionExtensions
     {
         public static IServiceCollection AddProductModule(this IServiceCollection services, string connectionString, string migrationsAssembly = "")
         {

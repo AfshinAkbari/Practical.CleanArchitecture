@@ -161,7 +161,7 @@ namespace ClassifiedAds.Modules.Identity.Controllers
 
                 _emailMessageService.CreateEmailMessage(new EmailMessageDTO
                 {
-                    From = string.Empty,
+                    From = "phong@gmail.com",
                     Tos = user.Email,
                     Subject = "Forgot Password",
                     Body = string.Format("Reset Url: {0}", resetUrl),
@@ -188,7 +188,7 @@ namespace ClassifiedAds.Modules.Identity.Controllers
 
                 _emailMessageService.CreateEmailMessage(new EmailMessageDTO
                 {
-                    From = string.Empty,
+                    From = "phong@gmail.com",
                     Tos = user.Email,
                     Subject = "Confirmation Email",
                     Body = string.Format("Confirmation Email: {0}", confirmationEmail),
