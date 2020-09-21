@@ -623,6 +623,60 @@
     ```
 </details>
 
+<details>
+  <summary><b>Sending Email</b></summary>
+  
+  - Open [ClassifiedAds.BackgroundServer/appsettings.json](/src/ClassifiedAds.Monolith/ClassifiedAds.BackgroundServer/appsettings.json) and jump to **Notification -> Email** section:
+    ```js
+    "Notification": {
+      "Email": {
+        "Provider": "Fake",
+      }
+    }
+    ```
+  - Use SmtpClient:
+    ```js
+    "Notification": {
+      "Email": {
+        "Provider": "SmtpClient",
+        "SmtpClient": {
+          "Host": "localhost",
+          "Port": "",
+          "UserName": "",
+          "Password": "",
+          "EnableSsl": ""
+        }
+      }
+    }
+    ```
+</details>
+
+<details>
+  <summary><b>Sending SMS</b></summary>
+  
+  - Open [ClassifiedAds.BackgroundServer/appsettings.json](/src/ClassifiedAds.Monolith/ClassifiedAds.BackgroundServer/appsettings.json) and jump to **Notification -> Sms** section:
+    ```js
+    "Notification": {
+      "Sms": {
+        "Provider": "Fake",
+      }
+    }
+    ```
+  - Use Twilio
+    ```js
+    "Notification": {
+      "Sms": {
+        "Provider": "Twilio",
+        "Twilio": {
+          "AccountSId": "",
+          "AuthToken": "",
+          "FromNumber": ""
+        }
+      }
+    }
+    ```
+</details>
+
 ## Set Startup Projects
 ![alt text](/docs/imgs/startup-projects.png)
 

@@ -1,6 +1,8 @@
 ﻿using ClassifiedAds.Domain.Entities;
 using ClassifiedAds.Domain.Notification;
-using System;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 
 namespace ClassifiedAds.Infrastructure.Notification.Sms.Twilio
 {
@@ -15,7 +17,16 @@ namespace ClassifiedAds.Infrastructure.Notification.Sms.Twilio
 
         public void Send(SmsMessage smsMessage)
         {
-            throw new NotImplementedException();
+            TwilioClient.Init(_options.AccountSId, _options.AuthToken);
+
+            var message = MessageResource.Create(
+                body: smsMessage.Message,
+                from: new PhoneNumber(_options.FromNumber),
+                to: new PhoneNumber(smsMessage.PhoneNumber));
+
+            if (!string.IsNullOrWhiteSpace(message.Sid))
+            {
+            }
         }
     }
 }
